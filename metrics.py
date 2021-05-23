@@ -1,10 +1,14 @@
+from pathlib import Path
 import numpy as np
 import datetime, time
 import matplotlib.pyplot as plt
 
+save_dir = Path("checkpoints") / datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
+save_dir.mkdir(parents=True)
+
 
 class MetricLogger:
-    def __init__(self, save_dir):
+    def __init__(self, save_dir=save_dir):
         self.save_log = save_dir / "log"
         with open(self.save_log, "w") as f:
             f.write(
