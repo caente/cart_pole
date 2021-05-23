@@ -2,8 +2,9 @@ import numpy as np
 import datetime, time
 import matplotlib.pyplot as plt
 
+
 class MetricLogger:
-    def __init__(self, save_dir) -> None:
+    def __init__(self, save_dir):
         self.save_log = save_dir / "log"
         with open(self.save_log, "w") as f:
             f.write(
@@ -32,7 +33,7 @@ class MetricLogger:
         self.init_episode()
 
         # Timing
-        self.record_time = time()
+        self.record_time = time.time()
 
     def log_step(self, reward, loss):
         self.curr_ep_reward += reward
@@ -99,4 +100,3 @@ class MetricLogger:
             plt.plot(getattr(self, f"moving_avg_{metric}"))
             plt.savefig(getattr(self, f"{metric}_plot"))
             plt.clf()
-

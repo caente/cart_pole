@@ -3,12 +3,9 @@ import torch
 from torch import nn
 from torch.nn.modules.loss import SmoothL1Loss
 from torchvision import transforms as T
-from PIL import Image
 import numpy as np
-from pathlib import Path
 from collections import deque
-import random, datetime, time, os, copy
-import matplotlib.pyplot as plt
+import random, copy
 
 # Gym is an OpenAI toolkit for RL
 import gym

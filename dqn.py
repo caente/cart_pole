@@ -1,5 +1,4 @@
 from datetime import datetime
-from time import time
 from pathlib import Path
 from torch import nn
 import torch
@@ -10,6 +9,7 @@ import numpy as np
 import random
 import matplotlib.pyplot as plt
 from torch.tensor import Tensor
+import metrics
 
 GAMMA = 0.90
 BATCH_SIZE = 32
@@ -75,7 +75,7 @@ obs = env.reset()
 
 save_dir = Path("checkpoints") / datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
 save_dir.mkdir(parents=True)
-logger = MetricsLogger(save_dir)
+logger = metrics.MetricsLogger(save_dir)
 
 for step in itertools.count():
     epsilon = np.interp(step, [0, EPSILON_DECAY], [EPSILON_START, EPSILON_END])
