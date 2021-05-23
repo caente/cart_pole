@@ -1,3 +1,6 @@
+from datetime import datetime
+from time import time
+from pathlib import Path
 from torch import nn
 import torch
 import gym
@@ -5,7 +8,7 @@ from collections import deque
 import itertools
 import numpy as np
 import random
-
+import matplotlib.pyplot as plt
 from torch.tensor import Tensor
 
 GAMMA = 0.90
@@ -69,6 +72,11 @@ for _ in range(MIN_REPLAY_SIZE):
 # Main training loop
 
 obs = env.reset()
+
+save_dir = Path("checkpoints") / datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
+save_dir.mkdir(parents=True)
+logger = MetricsLogger(save_dir)
+
 for step in itertools.count():
     epsilon = np.interp(step, [0, EPSILON_DECAY], [EPSILON_START, EPSILON_END])
     rnd_sample = random.random()
@@ -76,7 +84,6 @@ for step in itertools.count():
         action = env.action_space.sample()
     else:
         action = online_net.act(obs)
-
     new_obs, reward, done, _ = env.step(action)
     transition = (obs, action, reward, done, new_obs)
     replay_buffer.append(transition)
@@ -89,13 +96,17 @@ for step in itertools.count():
 
     # After solved, watch it
     if len(reward_buffer) >= 100:
-        if np.mean(reward_buffer) >= 195:
+        if np.mean(reward_buffer) >= 200:
             while True:
-                action = online_net.act(obs)
-                obs, _, done, _ = env.step(action)
-                env.render()
-                if done:
-                    env.reset()
+                plt.plot(range(len(reward_buffer)), reward_buffer)
+                plt.xlabel('episodes')
+                plt.ylabel('rewards')
+                plt.show()
+                #action = online_net.act(obs)
+                #obs, _, done, _ = env.step(action)
+                #env.render()
+                #if done:
+                #    env.reset()
     # Start gradient step
     transitions = random.sample(replay_buffer, BATCH_SIZE)
 
@@ -121,7 +132,7 @@ for step in itertools.count():
     q_values = online_net(obses_t)
     action_q_values = torch.gather(input=q_values, dim=1, index=actions_t)
     loss = nn.functional.smooth_l1_loss(action_q_values, targets)
-
+    logger.log_step(reward, loss)
     # Gradient descend
     optimizer.zero_grad()
     loss.backward()
@@ -135,3 +146,6 @@ for step in itertools.count():
         print()
         print("Step", step)
         print("Avg Reward", np.mean(reward_buffer))
+
+
+
