@@ -7,9 +7,8 @@ from collections import deque
 import itertools
 import numpy as np
 import random
-import matplotlib.pyplot as plt
 from torch.tensor import Tensor
-import metrics
+from metrics import MetricLogger
 
 GAMMA = 0.90
 BATCH_SIZE = 32
@@ -75,8 +74,8 @@ obs = env.reset()
 
 save_dir = Path("checkpoints") / datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
 save_dir.mkdir(parents=True)
-logger = metrics.MetricsLogger(save_dir)
-
+logger = MetricLogger(save_dir)
+episode = 0
 for step in itertools.count():
     epsilon = np.interp(step, [0, EPSILON_DECAY], [EPSILON_START, EPSILON_END])
     rnd_sample = random.random()
@@ -90,23 +89,21 @@ for step in itertools.count():
     obs = new_obs
     episode_reward += reward
     if done:
+        episode += 1
+        logger.log_episode()
         obs = env.reset()
         reward_buffer.append(episode_reward)
         episode_reward = 0.0
 
     # After solved, watch it
     if len(reward_buffer) >= 100:
-        if np.mean(reward_buffer) >= 200:
+        if np.mean(reward_buffer) >= 195:
             while True:
-                plt.plot(range(len(reward_buffer)), reward_buffer)
-                plt.xlabel('episodes')
-                plt.ylabel('rewards')
-                plt.show()
-                #action = online_net.act(obs)
-                #obs, _, done, _ = env.step(action)
-                #env.render()
-                #if done:
-                #    env.reset()
+                action = online_net.act(obs)
+                obs, _, done, _ = env.step(action)
+                env.render()
+                if done:
+                    env.reset()
     # Start gradient step
     transitions = random.sample(replay_buffer, BATCH_SIZE)
 
@@ -132,7 +129,7 @@ for step in itertools.count():
     q_values = online_net(obses_t)
     action_q_values = torch.gather(input=q_values, dim=1, index=actions_t)
     loss = nn.functional.smooth_l1_loss(action_q_values, targets)
-    logger.log_step(reward, loss)
+    logger.log_step(reward, loss.detach().numpy())
     # Gradient descend
     optimizer.zero_grad()
     loss.backward()
@@ -143,9 +140,5 @@ for step in itertools.count():
 
     # Logging
     if step % 1000 == 0:
+        logger.record(episode=episode, epsilon=epsilon, step=step)
         print()
-        print("Step", step)
-        print("Avg Reward", np.mean(reward_buffer))
-
-
-

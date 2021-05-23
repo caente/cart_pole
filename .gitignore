@@ -2,4 +2,5 @@ dqn-env/
 .idea/
 .vim/
 __pycache__/
+checkpoints/
 
