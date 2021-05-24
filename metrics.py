@@ -3,7 +3,7 @@ import numpy as np
 import datetime, time
 import matplotlib.pyplot as plt
 
-save_dir = Path("checkpoints") / datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
+save_dir = Path("checkpoints") / datetime.datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
 save_dir.mkdir(parents=True)
 
 

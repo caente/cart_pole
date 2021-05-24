@@ -71,10 +71,7 @@ for _ in range(MIN_REPLAY_SIZE):
 # Main training loop
 
 obs = env.reset()
-
-save_dir = Path("checkpoints") / datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
-save_dir.mkdir(parents=True)
-logger = MetricLogger(save_dir)
+logger = MetricLogger()
 episode = 0
 for step in itertools.count():
     epsilon = np.interp(step, [0, EPSILON_DECAY], [EPSILON_START, EPSILON_END])
