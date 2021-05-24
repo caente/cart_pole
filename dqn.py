@@ -76,7 +76,7 @@ class Agent:
         self.last_loss = 0.0
         self.terminal_state = np.zeros(agent_config["network_config"]["input_dim"])
 
-    def policy(self, state, epsilon=1):
+    def policy(self, state, epsilon=-1):
         rnd_sample = random.random()
         if rnd_sample <= epsilon:
             action = self.action_space.sample()
@@ -91,7 +91,9 @@ class Agent:
         return action
 
     def get_epsilon(self, step):
-        return np.interp(step, [0, self.epsilon_decay], [self.epsilon_start, self.epsilon_end])
+        return np.interp(
+            step, [0, self.epsilon_decay], [self.epsilon_start, self.epsilon_end]
+        )
 
     def sample_transitions(self):
         transitions = random.sample(self.replay_buffer, self.batch_size)
@@ -156,21 +158,23 @@ episode_reward = 0.0
 logger = MetricLogger()
 episode = 0
 agent = Agent()
-agent.agent_init({
-    "action_space": env.action_space,
-    "network_config": {
-        "input_dim": env.observation_space.shape,
-        "output_dim": env.action_space.n
+agent.agent_init(
+    {
+        "action_space": env.action_space,
+        "network_config": {
+            "input_dim": env.observation_space.shape,
+            "output_dim": env.action_space.n,
         },
-    "action_space": env.action_space,
-    "epsilon_start": EPSILON_START,
-    "epsilon_end": EPSILON_END,
-    "epsilon_decay": EPSILON_DECAY,
-    "gamma": GAMMA,
-    "update_target_freq": TARGET_UPDATE_FREQ,
-    "buffer_size": BUFFER_SIZE,
-    "batch_size": BATCH_SIZE
-    })
+        "action_space": env.action_space,
+        "epsilon_start": EPSILON_START,
+        "epsilon_end": EPSILON_END,
+        "epsilon_decay": EPSILON_DECAY,
+        "gamma": GAMMA,
+        "update_target_freq": TARGET_UPDATE_FREQ,
+        "buffer_size": BUFFER_SIZE,
+        "batch_size": BATCH_SIZE,
+    }
+)
 state = env.reset()
 action = agent.agent_start(state)
 for step in itertools.count():
