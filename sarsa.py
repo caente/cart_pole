@@ -32,7 +32,7 @@ class Network(nn.Module):
         return self.net(x)
 
     def act(self, obs):
-        obs_t = torch.as_tensor(obs, dtype=torch.float32).cuda()
+        obs_t = torch.as_tensor(obs, dtype=torch.float32)
         q_values = self(obs_t.unsqueeze(0))
 
         max_q_index = torch.argmax(q_values, dim=1)[0]
@@ -72,7 +72,7 @@ class Agent:
         self.target_net = Network(agent_config["network_config"])
         self.target_net.load_state_dict(self.online_net.state_dict())
         self.replay_buffer = deque(maxlen=agent_config["buffer_size"])
-        self.last_action = self.action_space.sample()
+        self.batch_size = agent_config["batch_size"]
         self.last_loss = 0.0
         self.terminal_state = np.zeros(agent_config["network_config"]["input_dim"])
 
@@ -87,13 +87,14 @@ class Agent:
     def agent_start(self, state):
         action = self.policy(state, self.epsilon_start)
         self.last_action = action
+        self.last_state = state
         return action
 
     def get_epsilon(self, step):
-        np.interp(step, [0, self.epislon_decay], [self.epislon_start, self.epislon_end])
+        return np.interp(step, [0, self.epsilon_decay], [self.epsilon_start, self.epsilon_end])
 
-    def learn(self):
-        transitions = random.sample(self.replay_buffer, BATCH_SIZE)
+    def sample_transitions(self):
+        transitions = random.sample(self.replay_buffer, self.batch_size)
         states = np.asarray([t[0] for t in transitions])
         actions = np.asarray([t[1] for t in transitions])
         rewards = np.asarray([t[2] for t in transitions])
@@ -105,16 +106,23 @@ class Agent:
         rewards_t = torch.as_tensor(rewards, dtype=torch.float32).unsqueeze(-1)
         dones_t = torch.as_tensor(dones, dtype=torch.float32).unsqueeze(-1)
         new_states_t = torch.as_tensor(new_states, dtype=torch.float32)
+        return states_t, actions_t, rewards_t, dones_t, new_states_t
+
+    def learn(self):
+        if len(self.replay_buffer) < self.batch_size:
+            return
+
+        states, actions, rewards, terminals, new_states = self.sample_transitions()
 
         # Compute target
-        target_q_values = self.target_net(new_states_t)
+        target_q_values = self.target_net(new_states)
         max_target_q_values = target_q_values.max(dim=1, keepdim=True)[0]
 
-        targets = rewards_t + self.gamma * (1 - dones_t) * max_target_q_values
+        targets = rewards + self.gamma * (1 - terminals) * max_target_q_values
 
         # Compute loss
-        q_values = self.online_net(states_t)
-        action_q_values = torch.gather(input=q_values, dim=1, index=actions_t)
+        q_values = self.online_net(states)
+        action_q_values = torch.gather(input=q_values, dim=1, index=actions)
         loss = nn.functional.smooth_l1_loss(action_q_values, targets)
         self.last_loss = loss.detach().numpy()
         # Gradient descend
@@ -131,7 +139,7 @@ class Agent:
         self.last_action = action
         self.last_state = state
         self.target_net.load_state_dict(self.online_net.state_dict())
-        return action
+        return action, epsilon
 
     def agent_end(self, reward):
         transition = (self.last_state, self.last_action, reward, 1, self.terminal_state)
@@ -147,28 +155,43 @@ episode_reward = 0.0
 # Main training loop
 logger = MetricLogger()
 episode = 0
-state = env.reset()
 agent = Agent()
-agent.agent_init({"action_space": env.action_space})
+agent.agent_init({
+    "action_space": env.action_space,
+    "network_config": {
+        "input_dim": env.observation_space.shape,
+        "output_dim": env.action_space.n
+        },
+    "action_space": env.action_space,
+    "epsilon_start": EPSILON_START,
+    "epsilon_end": EPSILON_END,
+    "epsilon_decay": EPSILON_DECAY,
+    "gamma": GAMMA,
+    "update_target_freq": TARGET_UPDATE_FREQ,
+    "buffer_size": BUFFER_SIZE,
+    "batch_size": BATCH_SIZE
+    })
+state = env.reset()
 action = agent.agent_start(state)
 for step in itertools.count():
     new_state, reward, done, _ = env.step(action)
     episode_reward += reward
     if done:
         episode += 1
-        action = agent.agent_end(reward)
+        agent.agent_end(reward)
         reward_buffer.append(episode_reward)
         episode_reward = 0.0
-        new_state = env.reset()
         logger.log_episode()
+        new_state = env.reset()
+        action = agent.agent_start(new_state)
     else:
-        action = agent.agent_step(reward, new_state, step)
+        action, epsilon = agent.agent_step(reward, new_state, step)
 
     state = new_state
     logger.log_step(reward, agent.last_loss)
     # Logging
     if step % 1000 == 0:
-        logger.record(episode=episode, epsilon=agent.epsilon, step=step)
+        logger.record(episode=episode, epsilon=epsilon, step=step)
         print()
 
     # After solved, watch it
