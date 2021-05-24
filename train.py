@@ -42,9 +42,9 @@ agent.agent_init(
 state = env.reset()
 action = agent.agent_start(state)
 for step in itertools.count():
-    new_state, reward, done, _ = env.step(action)
+    new_state, reward, terminal, _ = env.step(action)
     episode_reward += reward
-    if done:
+    if terminal:
         episode += 1
         agent.agent_end(reward)
         reward_buffer.append(episode_reward)
@@ -70,9 +70,9 @@ for step in itertools.count():
             while True:
                 count += 1
                 action = agent.policy(state)
-                state, _, done, _ = env.step(action)
+                state, _, terminal, _ = env.step(action)
                 env.render()
-                if done:
+                if terminal:
                     print(f"FAILED! After {count} steps")
                     count = 0
                     state = env.reset()

@@ -104,21 +104,21 @@ class Agent:
         states = np.asarray([t[0] for t in transitions])
         actions = np.asarray([t[1] for t in transitions])
         rewards = np.asarray([t[2] for t in transitions])
-        dones = np.asarray([t[3] for t in transitions])
+        terminals = np.asarray([t[3] for t in transitions])
         new_states = np.asarray([t[4] for t in transitions])
 
         states_t = torch.as_tensor(states, dtype=torch.float32)
         actions_t = torch.as_tensor(actions, dtype=torch.int64).unsqueeze(-1)
         rewards_t = torch.as_tensor(rewards, dtype=torch.float32).unsqueeze(-1)
-        dones_t = torch.as_tensor(dones, dtype=torch.float32).unsqueeze(-1)
+        terminals_t = torch.as_tensor(terminals, dtype=torch.float32).unsqueeze(-1)
         new_states_t = torch.as_tensor(new_states, dtype=torch.float32)
         if self.use_cuda:
             states_t = states_t.cuda()
             actions_t = actions_t.cuda()
             rewards_t = rewards_t.cuda()
-            dones_t = dones_t.cuda()
+            terminals_t = terminals_t.cuda()
             new_states_t = new_states_t.cuda()
-        return states_t, actions_t, rewards_t, dones_t, new_states_t
+        return states_t, actions_t, rewards_t, terminals_t, new_states_t
 
     def learn(self):
         states, actions, rewards, terminals, new_states = self.sample_transitions()
