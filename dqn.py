@@ -5,6 +5,7 @@ import numpy as np
 import random
 from torch.tensor import Tensor
 
+
 class Network(nn.Module):
     def __init__(self, network_config):
         super().__init__()
@@ -90,7 +91,9 @@ class Agent:
         )
 
     def sample_transitions(self):
-        transitions = random.sample(self.replay_buffer, min(len(self.replay_buffer), self.batch_size ))
+        transitions = random.sample(
+            self.replay_buffer, min(len(self.replay_buffer), self.batch_size)
+        )
         states = np.asarray([t[0] for t in transitions])
         actions = np.asarray([t[1] for t in transitions])
         rewards = np.asarray([t[2] for t in transitions])
