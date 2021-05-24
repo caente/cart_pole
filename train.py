@@ -6,9 +6,12 @@ from metrics import MetricLogger
 import dqn
 
 GAMMA = 0.90
-BATCH_SIZE = 32
+<<<<<<< Updated upstream
+BATCH_SIZE = 300
+=======
+BATCH_SIZE = 100
+>>>>>>> Stashed changes
 BUFFER_SIZE = 50000
-MIN_REPLAY_SIZE = 1000
 EPSILON_START = 1.0
 EPSILON_END = 0.02
 EPSILON_DECAY = 10000
@@ -66,6 +69,7 @@ for step in itertools.count():
     # After solved, watch it
     if len(reward_buffer) >= 100:
         if np.mean(reward_buffer) >= 195:
+            break
             count = 0
             while True:
                 count += 1

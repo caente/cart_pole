@@ -20,8 +20,7 @@ class Network(nn.Module):
         return self.net(x)
 
     def act(self, obs):
-        obs_t = torch.as_tensor(obs, dtype=torch.float32)
-        q_values = self(obs_t.unsqueeze(0))
+        q_values = self(obs.unsqueeze(0))
 
         max_q_index = torch.argmax(q_values, dim=1)[0]
         action = max_q_index.detach().item()
@@ -34,11 +33,8 @@ class Agent:
         pass
 
     def agent_init(self, agent_config):
-        """Setup for the agent called when the experiment first starts.
-
-        Set parameters needed to setup the agent.
-
-        Assume agent_config dict contains:
+        """
+        agent_config:
         {
             network_config: {
                 input_dim: shape,
@@ -54,6 +50,8 @@ class Agent:
             update_target_freq: float
         }
         """
+
+        self.use_cuda = torch.cuda.is_available()
         self.action_space = agent_config["action_space"]
         self.epsilon_start = agent_config["epsilon_start"]
         self.epsilon_end = agent_config["epsilon_end"]
@@ -62,9 +60,15 @@ class Agent:
         self.update_target_freq = agent_config["update_target_freq"]
 
         self.online_net = Network(agent_config["network_config"])
-        self.optimizer = torch.optim.Adam(self.online_net.parameters(), lr=5e-4)
         self.target_net = Network(agent_config["network_config"])
         self.target_net.load_state_dict(self.online_net.state_dict())
+
+        if self.use_cuda:
+            self.online_net = self.online_net.to(device="cuda")
+            self.target_net = self.target_net.to(device="cuda")
+
+        self.optimizer = torch.optim.Adam(self.online_net.parameters(), lr=5e-4)
+
         self.replay_buffer = deque(maxlen=agent_config["buffer_size"])
         self.batch_size = agent_config["batch_size"]
         self.last_loss = 0.0
@@ -75,7 +79,10 @@ class Agent:
         if rnd_sample <= epsilon:
             action = self.action_space.sample()
         else:
-            action = self.online_net.act(state)
+            state_t = torch.as_tensor(state, dtype=torch.float32)
+            if self.use_cuda:
+                state_t = state_t.cuda()
+            action = self.online_net.act(state_t)
         return action
 
     def agent_start(self, state):
@@ -105,6 +112,12 @@ class Agent:
         rewards_t = torch.as_tensor(rewards, dtype=torch.float32).unsqueeze(-1)
         dones_t = torch.as_tensor(dones, dtype=torch.float32).unsqueeze(-1)
         new_states_t = torch.as_tensor(new_states, dtype=torch.float32)
+        if self.use_cuda:
+            states_t = states_t.cuda()
+            actions_t = actions_t.cuda()
+            rewards_t = rewards_t.cuda()
+            dones_t = dones_t.cuda()
+            new_states_t = new_states_t.cuda()
         return states_t, actions_t, rewards_t, dones_t, new_states_t
 
     def learn(self):
@@ -120,7 +133,7 @@ class Agent:
         q_values = self.online_net(states)
         action_q_values = torch.gather(input=q_values, dim=1, index=actions)
         loss = nn.functional.smooth_l1_loss(action_q_values, targets)
-        self.last_loss = loss.detach().numpy()
+        self.last_loss = loss.cpu().detach().numpy()
         # Gradient descend
         self.optimizer.zero_grad()
         loss.backward()
