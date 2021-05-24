@@ -54,13 +54,13 @@ for step in itertools.count():
         new_state = env.reset()
         action = agent.agent_start(new_state)
     else:
-        action, epsilon = agent.agent_step(reward, new_state, step)
+        action = agent.agent_step(reward, new_state, step)
 
     state = new_state
     logger.log_step(reward, agent.last_loss)
     # Logging
     if step % 1000 == 0:
-        logger.record(episode=episode, epsilon=epsilon, step=step)
+        logger.record(episode=episode, epsilon=agent.last_epsilon, step=step)
         print()
 
     # After solved, watch it

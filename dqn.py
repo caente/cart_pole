@@ -81,6 +81,7 @@ class Agent:
         action = self.policy(state, self.epsilon_start)
         self.last_action = action
         self.last_state = state
+        self.last_epsilon = self.epsilon_start
         return action
 
     def get_epsilon(self, step):
@@ -130,8 +131,9 @@ class Agent:
         self.learn()
         self.last_action = action
         self.last_state = state
+        self.last_epsilon = epsilon
         self.target_net.load_state_dict(self.online_net.state_dict())
-        return action, epsilon
+        return action
 
     def agent_end(self, reward):
         transition = (self.last_state, self.last_action, reward, 1, self.terminal_state)
