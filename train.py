@@ -3,7 +3,9 @@ from collections import deque
 import itertools
 import numpy as np
 from metrics import MetricLogger
+import time
 import dqn
+import sarsa
 
 GAMMA = 0.90
 BATCH_SIZE = 100
@@ -24,7 +26,6 @@ episode = 0
 agent = dqn.Agent()
 agent.agent_init(
     {
-        "action_space": env.action_space,
         "network_config": {
             "input_dim": env.observation_space.shape,
             "output_dim": env.action_space.n,
@@ -42,6 +43,17 @@ agent.agent_init(
 state = env.reset()
 action = agent.agent_start(state)
 for step in itertools.count():
+   #count = 0
+   #while True:
+   #    count += 1
+   #    action = agent.policy(state)
+   #    state, _, terminal, _ = env.step(action)
+   #    env.render()
+   #    if terminal:
+   #        print(f"FAILED! After {count} steps")
+   #        count = 0
+   #        time.sleep(1)
+   #        state = env.reset()
     new_state, reward, terminal, _ = env.step(action)
     episode_reward += reward
     if terminal:
@@ -65,7 +77,6 @@ for step in itertools.count():
     # After solved, watch it
     if len(reward_buffer) >= 100:
         if np.mean(reward_buffer) >= 195:
-            break
             count = 0
             while True:
                 count += 1
@@ -75,4 +86,5 @@ for step in itertools.count():
                 if terminal:
                     print(f"FAILED! After {count} steps")
                     count = 0
+                    time.sleep(1)
                     state = env.reset()

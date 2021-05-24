@@ -42,7 +42,6 @@ class Agent:
             }
             buffer_size: integer,
             batch_size: integer,
-            action_space: ndarray,
             epsilon_start: float,
             epsilon_end: float,
             epsilon_decay: float
@@ -52,7 +51,6 @@ class Agent:
         """
 
         self.use_cuda = torch.cuda.is_available()
-        self.action_space = agent_config["action_space"]
         self.epsilon_start = agent_config["epsilon_start"]
         self.epsilon_end = agent_config["epsilon_end"]
         self.epsilon_decay = agent_config["epsilon_decay"]
@@ -61,6 +59,7 @@ class Agent:
 
         self.online_net = Network(agent_config["network_config"])
         self.target_net = Network(agent_config["network_config"])
+        self.num_actions = agent_config["network_config"]["output_dim"]
         self.target_net.load_state_dict(self.online_net.state_dict())
 
         if self.use_cuda:
@@ -73,20 +72,19 @@ class Agent:
         self.batch_size = agent_config["batch_size"]
         self.last_loss = 0.0
         self.terminal_state = np.zeros(agent_config["network_config"]["input_dim"])
+        self.rand_generator = np.random.RandomState()
 
-    def policy(self, state, epsilon=-1):
-        rnd_sample = random.random()
-        if rnd_sample <= epsilon:
-            action = self.action_space.sample()
-        else:
-            state_t = torch.as_tensor(state, dtype=torch.float32)
-            if self.use_cuda:
-                state_t = state_t.cuda()
-            action = self.online_net.act(state_t)
+    def policy(self, state):
+        state_t = torch.as_tensor(state, dtype=torch.float32)
+        if self.use_cuda:
+            state_t = state_t.cuda()
+        q_values = self.online_net(state_t)
+        probs = torch.softmax(q_values,dim=-1).squeeze().cpu().detach().numpy()
+        action = self.rand_generator.choice(self.num_actions, p=probs)
         return action
 
     def agent_start(self, state):
-        action = self.policy(state, self.epsilon_start)
+        action = self.policy(state)
         self.last_action = action
         self.last_state = state
         self.last_epsilon = self.epsilon_start
@@ -125,12 +123,14 @@ class Agent:
 
         # Compute target
         target_q_values = self.target_net(new_states)
-        max_target_q_values = target_q_values.max(dim=1, keepdim=True)[0]
-
-        targets = rewards + self.gamma * (1 - terminals) * max_target_q_values
+        probs = torch.softmax(target_q_values,dim=1)
+        weighted_action_values = torch.sum(target_q_values * probs, axis = 1).unsqueeze(-1)
+        #max_target_q_values = target_q_values.max(dim=1, keepdim=True)[0]
+        targets = rewards + self.gamma * (1 - terminals) * weighted_action_values
 
         # Compute loss
         q_values = self.online_net(states)
+
         action_q_values = torch.gather(input=q_values, dim=1, index=actions)
         loss = nn.functional.smooth_l1_loss(action_q_values, targets)
         self.last_loss = loss.cpu().detach().numpy()
@@ -141,7 +141,7 @@ class Agent:
 
     def agent_step(self, reward, state, step):
         epsilon = self.get_epsilon(step)
-        action = self.policy(state, epsilon)
+        action = self.policy(state)
         transition = (self.last_state, self.last_action, reward, 0, state)
         self.replay_buffer.append(transition)
         self.learn()
