@@ -14,7 +14,7 @@ EPSILON_END = 0.02
 EPSILON_DECAY = 10000
 TARGET_UPDATE_FREQ = 1000
 
-env = gym.make("CartPole-v0")
+env = gym.make("CartPole-v1")
 
 reward_buffer = deque([0.0], maxlen=100)
 episode_reward = 0.0
