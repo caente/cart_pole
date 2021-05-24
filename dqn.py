@@ -102,7 +102,7 @@ class Agent:
         )
 
     def sample_transitions(self):
-        transitions = random.sample(self.replay_buffer, self.batch_size)
+        transitions = random.sample(self.replay_buffer, min(len(self.replay_buffer), self.batch_size ))
         states = np.asarray([t[0] for t in transitions])
         actions = np.asarray([t[1] for t in transitions])
         rewards = np.asarray([t[2] for t in transitions])
@@ -117,9 +117,6 @@ class Agent:
         return states_t, actions_t, rewards_t, dones_t, new_states_t
 
     def learn(self):
-        if len(self.replay_buffer) < self.batch_size:
-            return
-
         states, actions, rewards, terminals, new_states = self.sample_transitions()
 
         # Compute target
