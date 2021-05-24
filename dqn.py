@@ -52,12 +52,18 @@ class Agent:
 
         Assume agent_config dict contains:
         {
-            network_config: dictionary,
-            optimizer_config: dictionary,
-            replay_buffer_size: integer,
-            minibatch_sz: integer,
-            num_replay_updates_per_step: float
-            discount_factor: float,
+            network_config: {
+                input_dim: shape,
+                output_dim: int
+            }
+            buffer_size: integer,
+            batch_size: integer,
+            action_space: ndarray,
+            epsilon_start: float,
+            epsilon_end: float,
+            epsilon_decay: float
+            gamma: float,
+            update_target_freq: float
         }
         """
         self.action_space = agent_config["action_space"]
