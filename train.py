@@ -6,11 +6,7 @@ from metrics import MetricLogger
 import dqn
 
 GAMMA = 0.90
-<<<<<<< Updated upstream
-BATCH_SIZE = 300
-=======
 BATCH_SIZE = 100
->>>>>>> Stashed changes
 BUFFER_SIZE = 50000
 EPSILON_START = 1.0
 EPSILON_END = 0.02
