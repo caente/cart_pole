@@ -24,7 +24,7 @@ episode_reward = 0.0
 # Main training loop
 logger = MetricLogger()
 episode = 0
-agent = dqn.Agent()
+agent = sarsa.Agent()
 agent.agent_init(
     {
         "feature_shape": env.observation_space.shape,
@@ -38,7 +38,7 @@ agent.agent_init(
         "buffer_size": BUFFER_SIZE,
         "batch_size": BATCH_SIZE,
     },
-    dqn.Network(
+    sarsa.Network(
         input_shape=env.observation_space.shape,
         output_dim=env.action_space.n,
     ),
