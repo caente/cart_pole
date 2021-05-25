@@ -26,10 +26,7 @@ episode = 0
 agent = dqn.Agent()
 agent.agent_init(
     {
-        "network_config": {
-            "input_dim": env.observation_space.shape,
-            "output_dim": env.action_space.n,
-        },
+        "feature_shape": env.observation_space.shape,
         "action_space": env.action_space,
         "epsilon_start": EPSILON_START,
         "epsilon_end": EPSILON_END,
@@ -38,22 +35,26 @@ agent.agent_init(
         "update_target_freq": TARGET_UPDATE_FREQ,
         "buffer_size": BUFFER_SIZE,
         "batch_size": BATCH_SIZE,
-    }
+    },
+    dqn.Network(
+        input_shape=env.observation_space.shape,
+        output_dim=env.action_space.n,
+    ),
 )
 state = env.reset()
 action = agent.agent_start(state)
 for step in itertools.count():
-   #count = 0
-   #while True:
-   #    count += 1
-   #    action = agent.policy(state)
-   #    state, _, terminal, _ = env.step(action)
-   #    env.render()
-   #    if terminal:
-   #        print(f"FAILED! After {count} steps")
-   #        count = 0
-   #        time.sleep(1)
-   #        state = env.reset()
+    # count = 0
+    # while True:
+    #    count += 1
+    #    action = agent.policy(state)
+    #    state, _, terminal, _ = env.step(action)
+    #    env.render()
+    #    if terminal:
+    #        print(f"FAILED! After {count} steps")
+    #        count = 0
+    #        time.sleep(1)
+    #        state = env.reset()
     new_state, reward, terminal, _ = env.step(action)
     episode_reward += reward
     if terminal:

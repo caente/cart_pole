@@ -4,33 +4,32 @@ from collections import deque
 import numpy as np
 import random
 from torch.tensor import Tensor
+import copy
 
 
 class Network(nn.Module):
-    def __init__(self, network_config):
+    def __init__(self, input_shape, output_dim):
         super().__init__()
-        in_features = int(np.prod(network_config["input_dim"]))
+        in_features = int(np.prod(input_shape))
         self.net = nn.Sequential(
             nn.Linear(in_features, 64),
             nn.Tanh(),
-            nn.Linear(64, network_config["output_dim"]),
+            nn.Linear(64, output_dim),
         )
 
     def forward(self, x: Tensor):
         return self.net(x)
 
+
 class Agent:
     def __init__(self) -> None:
         pass
 
-    def agent_init(self, agent_config):
+    def agent_init(self, agent_config, network):
         """
         agent_config:
         {
-            network_config: {
-                input_dim: shape,
-                output_dim: int
-            }
+            feature_shape: integer
             buffer_size: integer,
             batch_size: integer,
             action_space: ndarray,
@@ -49,9 +48,8 @@ class Agent:
         self.epsilon_decay = agent_config["epsilon_decay"]
         self.gamma = agent_config["gamma"]
         self.update_target_freq = agent_config["update_target_freq"]
-
-        self.online_net = Network(agent_config["network_config"])
-        self.target_net = Network(agent_config["network_config"])
+        self.online_net = network
+        self.target_net = copy.deepcopy(network)
         self.target_net.load_state_dict(self.online_net.state_dict())
 
         if self.use_cuda:
@@ -63,7 +61,7 @@ class Agent:
         self.replay_buffer = deque(maxlen=agent_config["buffer_size"])
         self.batch_size = agent_config["batch_size"]
         self.last_loss = 0.0
-        self.terminal_state = np.zeros(agent_config["network_config"]["input_dim"])
+        self.terminal_state = np.zeros(agent_config["feature_shape"])
 
     def policy(self, state, epsilon=-1):
         rnd_sample = random.random()
