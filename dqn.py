@@ -19,15 +19,6 @@ class Network(nn.Module):
     def forward(self, x: Tensor):
         return self.net(x)
 
-    def act(self, obs):
-        q_values = self(obs.unsqueeze(0))
-
-        max_q_index = torch.argmax(q_values, dim=1)[0]
-        action = max_q_index.detach().item()
-
-        return action
-
-
 class Agent:
     def __init__(self) -> None:
         pass
@@ -82,7 +73,9 @@ class Agent:
             state_t = torch.as_tensor(state, dtype=torch.float32)
             if self.use_cuda:
                 state_t = state_t.cuda()
-            action = self.online_net.act(state_t)
+            q_values = self.online_net(state_t.unsqueeze(0))
+            max_q_index = torch.argmax(q_values, dim=1)[0]
+            action = max_q_index.detach().item()
         return action
 
     def agent_start(self, state):
