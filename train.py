@@ -2,7 +2,9 @@ import gym
 from collections import deque
 import itertools
 from metrics import MetricLogger
+import numpy as np
 import sarsa
+import dqn
 
 GAMMA = 0.90
 BATCH_SIZE = 100
@@ -12,7 +14,7 @@ EPSILON_END = 0.02
 EPSILON_DECAY = 10000
 TARGET_UPDATE_FREQ = 1000
 
-env_name = "LunarLander-v2"
+env_name = "CartPole-v1"
 env = gym.make(env_name)
 
 reward_buffer = deque([0.0], maxlen=100)
@@ -21,19 +23,18 @@ episode_reward = 0.0
 # Main training loop
 logger = MetricLogger()
 episode = 0
-agent = sarsa.Agent(
+agent = dqn.Agent(
     feature_shape=env.observation_space.shape,
     num_actions=env.action_space.n,
     batch_size= BATCH_SIZE,
     buffer_size=BUFFER_SIZE,
-    network=sarsa.Network(
+    network=dqn.Network(
         input_shape=env.observation_space.shape,
         output_dim=env.action_space.n,
     ),
 )
 agent.agent_init(
     {
-        "action_space": env.action_space,
         "epsilon_start": EPSILON_START,
         "epsilon_end": EPSILON_END,
         "epsilon_decay": EPSILON_DECAY,
@@ -63,7 +64,7 @@ for step in itertools.count():
     episode_reward += reward
     if terminal:
         episode += 1
-        if episode % 20 == 0:
+        if np.mean(reward_buffer) > 195:
             show(1)
         agent.agent_end(reward)
         reward_buffer.append(episode_reward)
