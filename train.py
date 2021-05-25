@@ -15,7 +15,8 @@ EPSILON_END = 0.02
 EPSILON_DECAY = 10000
 TARGET_UPDATE_FREQ = 1000
 
-env = gym.make("LunarLander-v2")
+env_name = "LunarLander-v2"
+env = gym.make(env_name)
 
 reward_buffer = deque([0.0], maxlen=100)
 episode_reward = 0.0
@@ -23,7 +24,7 @@ episode_reward = 0.0
 # Main training loop
 logger = MetricLogger()
 episode = 0
-agent = sarsa.Agent()
+agent = dqn.Agent()
 agent.agent_init(
     {
         "feature_shape": env.observation_space.shape,
@@ -37,7 +38,7 @@ agent.agent_init(
         "buffer_size": BUFFER_SIZE,
         "batch_size": BATCH_SIZE,
     },
-    sarsa.Network(
+    dqn.Network(
         input_shape=env.observation_space.shape,
         output_dim=env.action_space.n,
     ),
@@ -47,25 +48,25 @@ action = agent.agent_start(state)
 
 
 def show(count: int):
-    env = gym.make("LunarLander-v2")
-    state = env.reset()
+    new_env = gym.make(env_name)
+    state = new_env.reset()
     while count > 0:
         action = agent.policy(state)
-        state, _, terminal, _ = env.step(action)
-        env.render()
+        state, _, terminal, _ = new_env.step(action)
+        new_env.render()
         if terminal:
             count -= 1
-            state = env.reset()
-    env.close()
+            state = new_env.reset()
+    new_env.close()
+
 
 for step in itertools.count():
     new_state, reward, terminal, _ = env.step(action)
     episode_reward += reward
     if terminal:
         episode += 1
-        if episode > 100:
+        if episode % 20 == 0:
             show(1)
-            break
         agent.agent_end(reward)
         reward_buffer.append(episode_reward)
         episode_reward = 0.0
