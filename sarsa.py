@@ -4,42 +4,34 @@ from collections import deque
 import numpy as np
 import random
 from torch.tensor import Tensor
+import copy
 
 
 class Network(nn.Module):
-    def __init__(self, network_config):
+    def __init__(self, input_shape, output_dim):
         super().__init__()
-        in_features = int(np.prod(network_config["input_dim"]))
+        in_features = int(np.prod(input_shape))
         self.net = nn.Sequential(
             nn.Linear(in_features, 64),
-            nn.Tanh(),
-            nn.Linear(64, network_config["output_dim"]),
+            nn.ReLU(),
+            nn.Linear(64, output_dim),
         )
 
     def forward(self, x: Tensor):
         return self.net(x)
 
-    def act(self, obs):
-        q_values = self(obs.unsqueeze(0))
-
-        max_q_index = torch.argmax(q_values, dim=1)[0]
-        action = max_q_index.detach().item()
-
-        return action
 
 
 class Agent:
     def __init__(self) -> None:
         pass
 
-    def agent_init(self, agent_config):
+    def agent_init(self, agent_config, network):
         """
         agent_config:
         {
-            network_config: {
-                input_dim: shape,
-                output_dim: int
-            }
+            num_actions: integer,
+            feature_shape: tuple,
             buffer_size: integer,
             batch_size: integer,
             epsilon_start: float,
@@ -57,10 +49,10 @@ class Agent:
         self.gamma = agent_config["gamma"]
         self.update_target_freq = agent_config["update_target_freq"]
 
-        self.online_net = Network(agent_config["network_config"])
-        self.target_net = Network(agent_config["network_config"])
-        self.num_actions = agent_config["network_config"]["output_dim"]
+        self.online_net = network
+        self.target_net = copy.deepcopy(network)
         self.target_net.load_state_dict(self.online_net.state_dict())
+        self.num_actions = agent_config["num_actions"]
 
         if self.use_cuda:
             self.online_net = self.online_net.to(device="cuda")
@@ -71,7 +63,7 @@ class Agent:
         self.replay_buffer = deque(maxlen=agent_config["buffer_size"])
         self.batch_size = agent_config["batch_size"]
         self.last_loss = 0.0
-        self.terminal_state = np.zeros(agent_config["network_config"]["input_dim"])
+        self.terminal_state = np.zeros(agent_config["feature_shape"])
         self.rand_generator = np.random.RandomState()
 
     def policy(self, state):
