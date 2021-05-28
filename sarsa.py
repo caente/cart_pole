@@ -15,7 +15,9 @@ class Network(nn.Module):
         self.net = nn.Sequential(
             nn.Linear(in_features, 64),
             nn.ReLU(),
-            nn.Linear(64, output_dim),
+            nn.Linear(64, 200),
+            nn.ReLU(),
+            nn.Linear(200, output_dim),
         )
 
     def forward(self, x: Tensor):
